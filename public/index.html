@@ -1,0 +1,90 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Agenda</title>
+    <link rel="stylesheet" href="/style.css" />
+  </head>
+  <body>
+    <main class="container">
+      <h1>Agenda de Contatos</h1>
+
+      <form id="form-contato" class="card">
+        <input type="text" id="nome" placeholder="Nome" required />
+        <input type="text" id="telefone" placeholder="Telefone" required />
+        <input type="email" id="email" placeholder="E-mail" />
+        <input type="date" id="data" />
+        <button type="submit">Salvar</button>
+      </form>
+
+      <section class="card">
+        <h2>Contatos cadastrados</h2>
+        <ul id="lista-contatos"></ul>
+      </section>
+    </main>
+
+    <script>
+      const form = document.getElementById('form-contato');
+      const lista = document.getElementById('lista-contatos');
+      let contatos = [];
+
+      async function carregarContatos() {
+        const resposta = await fetch('/api/contatos');
+        contatos = await resposta.json();
+        renderizarContatos();
+      }
+
+      function renderizarContatos() {
+        lista.innerHTML = '';
+
+        if (contatos.length === 0) {
+          lista.innerHTML = '<li>Nenhum contato cadastrado.</li>';
+          return;
+        }
+
+        contatos.forEach((contato) => {
+          const item = document.createElement('li');
+          item.innerHTML = `
+            <strong>${contato.nome}</strong><br/>
+            Telefone: ${contato.telefone}<br/>
+            E-mail: ${contato.email || '-'}<br/>
+            Data: ${contato.data || '-'}
+            <button data-id="${contato.id}" class="remover">Remover</button>
+          `;
+          lista.appendChild(item);
+        });
+      }
+
+      form.addEventListener('submit', async (event) => {
+        event.preventDefault();
+
+        const dados = {
+          nome: document.getElementById('nome').value,
+          telefone: document.getElementById('telefone').value,
+          email: document.getElementById('email').value,
+          data: document.getElementById('data').value
+        };
+
+        await fetch('/api/contatos', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify(dados)
+        });
+
+        form.reset();
+        carregarContatos();
+      });
+
+      lista.addEventListener('click', async (event) => {
+        if (event.target.classList.contains('remover')) {
+          const id = event.target.dataset.id;
+          await fetch(`/api/contatos/${id}`, { method: 'DELETE' });
+          carregarContatos();
+        }
+      });
+
+      carregarContatos();
+    </script>
+  </body>
+</html>
