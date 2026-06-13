@@ -1,10 +1,12 @@
 const express = require('express');
+const fs = require('fs');
 const path = require('path');
 const sqlite3 = require('sqlite3').verbose();
 
 const app = express();
 const port = process.env.PORT || 3000;
 const dbPath = path.join(__dirname, 'agenda.db');
+const schemaPath = path.join(__dirname, 'schema.sql');
 
 app.use(express.json());
 app.use(express.static(path.join(__dirname, 'public')));
@@ -17,18 +19,14 @@ const db = new sqlite3.Database(dbPath, (err) => {
   }
 });
 
-db.run(`
-  CREATE TABLE IF NOT EXISTS contatos (
-    id INTEGER PRIMARY KEY AUTOINCREMENT,
-    nome TEXT NOT NULL,
-    telefone TEXT NOT NULL,
-    email TEXT,
-    data TEXT
-  )
-`, (err) => {
-  if (err) {
-    console.error('Erro ao criar tabela:', err.message);
-  }
+const schema = fs.readFileSync(schemaPath, 'utf8');
+
+ db.serialize(() => {
+  db.run(schema, (err) => {
+    if (err) {
+      console.error('Erro ao aplicar schema:', err.message);
+    }
+  });
 });
 
 app.get('/api/contatos', (req, res) => {
