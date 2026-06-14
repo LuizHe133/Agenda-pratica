@@ -21,10 +21,12 @@ const db = new sqlite3.Database(dbPath, (err) => {
 
 const schema = fs.readFileSync(schemaPath, 'utf8');
 
- db.serialize(() => {
-  db.run(schema, (err) => {
+db.serialize(() => {
+  db.exec(schema, (err) => {
     if (err) {
       console.error('Erro ao aplicar schema:', err.message);
+    } else {
+      console.log('Schema aplicado com sucesso.');
     }
   });
 });

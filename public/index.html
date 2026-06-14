@@ -15,7 +15,7 @@
         <input type="text" id="telefone" placeholder="Telefone" required />
         <input type="email" id="email" placeholder="E-mail" />
         <input type="date" id="data" />
-        <button type="submit">Salvar</button>
+        <button id="btn-salvar" type="button">Salvar</button>
       </form>
 
       <section class="card">
@@ -26,13 +26,22 @@
 
     <script>
       const form = document.getElementById('form-contato');
+      const botaoSalvar = document.getElementById('btn-salvar');
       const lista = document.getElementById('lista-contatos');
       let contatos = [];
 
       async function carregarContatos() {
-        const resposta = await fetch('/api/contatos');
-        contatos = await resposta.json();
-        renderizarContatos();
+        try {
+          const resposta = await fetch('/api/contatos');
+          if (!resposta.ok) {
+            throw new Error('Não foi possível carregar os contatos.');
+          }
+          contatos = await resposta.json();
+          renderizarContatos();
+        } catch (erro) {
+          console.error(erro);
+          lista.innerHTML = '<li>Não foi possível carregar os contatos.</li>';
+        }
       }
 
       function renderizarContatos() {
@@ -56,24 +65,78 @@
         });
       }
 
+      botaoSalvar.addEventListener('click', async (event) => {
+        event.preventDefault();
+
+        const dados = {
+          nome: document.getElementById('nome').value.trim(),
+          telefone: document.getElementById('telefone').value.trim(),
+          email: document.getElementById('email').value.trim(),
+          data: document.getElementById('data').value
+        };
+
+        if (!dados.nome || !dados.telefone) {
+          lista.innerHTML = '<li>Preencha nome e telefone.</li>';
+          return;
+        }
+
+        try {
+          const resposta = await fetch('/api/contatos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+          });
+
+          const resultado = await resposta.json().catch(() => ({}));
+
+          if (!resposta.ok) {
+            throw new Error(resultado.erro || 'Não foi possível salvar o contato.');
+          }
+
+          form.reset();
+          contatos.unshift(resultado);
+          renderizarContatos();
+        } catch (erro) {
+          console.error(erro);
+          lista.innerHTML = `<li>${erro.message}</li>`;
+        }
+      });
+
       form.addEventListener('submit', async (event) => {
         event.preventDefault();
 
         const dados = {
-          nome: document.getElementById('nome').value,
-          telefone: document.getElementById('telefone').value,
-          email: document.getElementById('email').value,
+          nome: document.getElementById('nome').value.trim(),
+          telefone: document.getElementById('telefone').value.trim(),
+          email: document.getElementById('email').value.trim(),
           data: document.getElementById('data').value
         };
 
-        await fetch('/api/contatos', {
-          method: 'POST',
-          headers: { 'Content-Type': 'application/json' },
-          body: JSON.stringify(dados)
-        });
+        if (!dados.nome || !dados.telefone) {
+          lista.innerHTML = '<li>Preencha nome e telefone.</li>';
+          return;
+        }
 
-        form.reset();
-        carregarContatos();
+        try {
+          const resposta = await fetch('/api/contatos', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify(dados)
+          });
+
+          const resultado = await resposta.json().catch(() => ({}));
+
+          if (!resposta.ok) {
+            throw new Error(resultado.erro || 'Não foi possível salvar o contato.');
+          }
+
+          form.reset();
+          contatos.unshift(resultado);
+          renderizarContatos();
+        } catch (erro) {
+          console.error(erro);
+          lista.innerHTML = `<li>${erro.message}</li>`;
+        }
       });
 
       lista.addEventListener('click', async (event) => {
